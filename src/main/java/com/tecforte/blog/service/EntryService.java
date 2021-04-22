@@ -12,7 +12,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Service Implementation for managing {@link Entry}.
@@ -56,6 +59,20 @@ public class EntryService {
         log.debug("Request to get all Entries");
         return entryRepository.findAll(pageable)
             .map(entryMapper::toDto);
+    }
+
+    /**
+     * Get all the entries of given blog id.
+     *
+     * @return the list of entities.
+     */
+    @Transactional(readOnly = true)
+    public List<EntryDTO> findAllByBlogId(Long blogId) {
+        log.debug("Request to get all Entries with given Blog id");
+        return entryRepository.findAll().stream()
+            .map(entryMapper::toDto)
+            .filter(e -> e.getBlogId().equals(blogId))
+            .collect(Collectors.toCollection(LinkedList::new));
     }
 
 

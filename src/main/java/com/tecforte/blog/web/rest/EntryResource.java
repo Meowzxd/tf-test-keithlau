@@ -1,8 +1,11 @@
 package com.tecforte.blog.web.rest;
 
+import com.tecforte.blog.service.BlogService;
 import com.tecforte.blog.service.EntryService;
 import com.tecforte.blog.web.rest.errors.BadRequestAlertException;
+import com.tecforte.blog.service.dto.BlogDTO;
 import com.tecforte.blog.service.dto.EntryDTO;
+import com.tecforte.blog.domain.enumeration.Emoji;
 
 import io.github.jhipster.web.util.HeaderUtil;
 import io.github.jhipster.web.util.PaginationUtil;
@@ -22,6 +25,7 @@ import javax.validation.Valid;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,9 +43,12 @@ public class EntryResource {
     @Value("${jhipster.clientApp.name}")
     private String applicationName;
 
+    private final BlogService blogService;
+
     private final EntryService entryService;
 
-    public EntryResource(EntryService entryService) {
+    public EntryResource(BlogService blogService, EntryService entryService) {
+        this.blogService = blogService;
         this.entryService = entryService;
     }
 
@@ -57,6 +64,20 @@ public class EntryResource {
         log.debug("REST request to save Entry : {}", entryDTO);
         if (entryDTO.getId() != null) {
             throw new BadRequestAlertException("A new entry cannot already have an ID", ENTITY_NAME, "idexists");
+        }
+        Emoji entryEmoji = entryDTO.getEmoji();
+        boolean isPositiveBlog = blogService.findOne(entryDTO.getBlogId()).get().isPositive();
+        if (((entryEmoji.equals(Emoji.LIKE) || entryEmoji.equals(Emoji.HAHA)) && !isPositiveBlog) ||
+            ((entryEmoji.equals(Emoji.SAD) || entryEmoji.equals(Emoji.ANGRY)) && isPositiveBlog)) {
+            throw new BadRequestAlertException("Invalid Emoji", ENTITY_NAME, "invalidEmoji");
+        }
+        List<String> entryTitle = Arrays.asList(entryDTO.getTitle().toUpperCase().split(" "));
+        List<String> entryContent = Arrays.asList(entryDTO.getContent().toUpperCase().split(" "));
+        if (((entryTitle.contains("LOVE") || entryTitle.contains("HAPPY") || entryTitle.contains("TRUST")) && !isPositiveBlog) ||
+            ((entryContent.contains("LOVE") || entryContent.contains("HAPPY") || entryContent.contains("TRUST")) && !isPositiveBlog) ||
+            ((entryTitle.contains("SAD") || entryTitle.contains("FEAR") || entryTitle.contains("LONELY")) && isPositiveBlog) ||
+            ((entryContent.contains("SAD") || entryContent.contains("FEAR") || entryContent.contains("LONELY")) && isPositiveBlog)) {
+            throw new BadRequestAlertException("Invalid Content", ENTITY_NAME, "invalidContent");
         }
         EntryDTO result = entryService.save(entryDTO);
         return ResponseEntity.created(new URI("/api/entries/" + result.getId()))
@@ -78,6 +99,20 @@ public class EntryResource {
         log.debug("REST request to update Entry : {}", entryDTO);
         if (entryDTO.getId() == null) {
             throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
+        }
+        Emoji entryEmoji = entryDTO.getEmoji();
+        boolean isPositiveBlog = blogService.findOne(entryDTO.getBlogId()).get().isPositive();
+        if (((entryEmoji.equals(Emoji.LIKE) || entryEmoji.equals(Emoji.HAHA)) && !isPositiveBlog) ||
+            ((entryEmoji.equals(Emoji.SAD) || entryEmoji.equals(Emoji.ANGRY)) && isPositiveBlog)) {
+            throw new BadRequestAlertException("Invalid Emoji", ENTITY_NAME, "invalidEmoji");
+        }
+        List<String> entryTitle = Arrays.asList(entryDTO.getTitle().toUpperCase().split(" "));
+        List<String> entryContent = Arrays.asList(entryDTO.getContent().toUpperCase().split(" "));
+        if (((entryTitle.contains("LOVE") || entryTitle.contains("HAPPY") || entryTitle.contains("TRUST")) && !isPositiveBlog) ||
+            ((entryContent.contains("LOVE") || entryContent.contains("HAPPY") || entryContent.contains("TRUST")) && !isPositiveBlog) ||
+            ((entryTitle.contains("SAD") || entryTitle.contains("FEAR") || entryTitle.contains("LONELY")) && isPositiveBlog) ||
+            ((entryContent.contains("SAD") || entryContent.contains("FEAR") || entryContent.contains("LONELY")) && isPositiveBlog)) {
+            throw new BadRequestAlertException("Invalid Content", ENTITY_NAME, "invalidContent");
         }
         EntryDTO result = entryService.save(entryDTO);
         return ResponseEntity.ok()

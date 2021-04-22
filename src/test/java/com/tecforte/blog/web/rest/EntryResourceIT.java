@@ -3,6 +3,7 @@ package com.tecforte.blog.web.rest;
 import com.tecforte.blog.BlogApp;
 import com.tecforte.blog.domain.Entry;
 import com.tecforte.blog.repository.EntryRepository;
+import com.tecforte.blog.service.BlogService;
 import com.tecforte.blog.service.EntryService;
 import com.tecforte.blog.service.dto.EntryDTO;
 import com.tecforte.blog.service.mapper.EntryMapper;
@@ -54,6 +55,9 @@ public class EntryResourceIT {
     private EntryMapper entryMapper;
 
     @Autowired
+    private BlogService blogService;
+
+    @Autowired
     private EntryService entryService;
 
     @Autowired
@@ -78,7 +82,7 @@ public class EntryResourceIT {
     @BeforeEach
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        final EntryResource entryResource = new EntryResource(entryService);
+        final EntryResource entryResource = new EntryResource(blogService, entryService);
         this.restEntryMockMvc = MockMvcBuilders.standaloneSetup(entryResource)
             .setCustomArgumentResolvers(pageableArgumentResolver)
             .setControllerAdvice(exceptionTranslator)
@@ -214,7 +218,7 @@ public class EntryResourceIT {
             .andExpect(jsonPath("$.[*].emoji").value(hasItem(DEFAULT_EMOJI.toString())))
             .andExpect(jsonPath("$.[*].content").value(hasItem(DEFAULT_CONTENT.toString())));
     }
-    
+
     @Test
     @Transactional
     public void getEntry() throws Exception {

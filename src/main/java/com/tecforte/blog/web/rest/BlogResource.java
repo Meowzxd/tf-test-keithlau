@@ -1,14 +1,18 @@
 package com.tecforte.blog.web.rest;
 
 import com.tecforte.blog.service.BlogService;
+import com.tecforte.blog.service.EntryService;
 import com.tecforte.blog.web.rest.errors.BadRequestAlertException;
 import com.tecforte.blog.service.dto.BlogDTO;
+import com.tecforte.blog.service.dto.EntryDTO;
 
 import io.github.jhipster.web.util.HeaderUtil;
 import io.github.jhipster.web.util.ResponseUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +21,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Optional;
 
 /**
@@ -35,8 +40,11 @@ public class BlogResource {
 
     private final BlogService blogService;
 
-    public BlogResource(BlogService blogService) {
+    private final EntryService entryService;
+
+    public BlogResource(BlogService blogService, EntryService entryService) {
         this.blogService = blogService;
+        this.entryService = entryService;
     }
 
     /**
@@ -115,5 +123,64 @@ public class BlogResource {
         log.debug("REST request to delete Blog : {}", id);
         blogService.delete(id);
         return ResponseEntity.noContent().headers(HeaderUtil.createEntityDeletionAlert(applicationName, false, ENTITY_NAME, id.toString())).build();
+    }
+
+    /**
+     * {@code DELETE  /blogs/clean} : delete all blog entries that contain certain keywords.
+     *
+     * @param keywords the keywords to check.
+     * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
+     */
+    @DeleteMapping("/blogs/clean")
+    public ResponseEntity<Void> deleteBlogEntriesWithKeyword(@Valid @RequestBody List<String> keywords) {
+        log.debug("REST request to delete all entries that contain certain keywords : {}", keywords);
+        Page<EntryDTO> entries = entryService.findAll(Pageable.unpaged());
+        List<Long> deletedEntryIds = new ArrayList();
+
+        for (EntryDTO entry : entries) {
+            Long id = entry.getId();
+            String title = entry.getTitle();
+            String content = entry.getContent();
+
+            for (String keyword : keywords) {
+                if (title.contains(keyword) || content.contains(keyword)) {
+                    deletedEntryIds.add(id);
+                    entryService.delete(id);
+                    break;
+                }
+            }
+        }
+
+        return ResponseEntity.noContent().headers(HeaderUtil.createEntityDeletionAlert(applicationName, false, ENTITY_NAME, deletedEntryIds.toString())).build();
+    }
+
+    /**
+     * {@code DELETE  /blogs/:id/clean} : delete all entries under the "id "blog that contain certain keywords.
+     *
+     * @param id the id of the blogDTO to clean.
+     * @param keywords the keywords to check.
+     * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
+     */
+    @DeleteMapping("/blogs/{id}/clean")
+    public ResponseEntity<Void> deleteBlogEntriesWithKeyword(@PathVariable Long id, @Valid @RequestBody List<String> keywords) {
+        log.debug("REST request to delete all entries of blog ID {} that contain certain keywords : {}", id, keywords);
+        List<EntryDTO> entries = entryService.findAllByBlogId(id);
+        List<Long> deletedEntryIds = new ArrayList();
+
+        for (EntryDTO entry : entries) {
+            Long entryId = entry.getId();
+            String title = entry.getTitle();
+            String content = entry.getContent();
+
+            for (String keyword : keywords) {
+                if (title.contains(keyword) || content.contains(keyword)) {
+                    deletedEntryIds.add(entryId);
+                    entryService.delete(entryId);
+                    break;
+                }
+            }
+        }
+
+        return ResponseEntity.noContent().headers(HeaderUtil.createEntityDeletionAlert(applicationName, false, ENTITY_NAME, deletedEntryIds.toString())).build();
     }
 }
